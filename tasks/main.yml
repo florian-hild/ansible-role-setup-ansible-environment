@@ -1,0 +1,48 @@
+---
+
+- name: Block
+  tags: setup-ansible-environment
+  block:
+    - name: Create ansible user
+      tags: setup-ansible-environment_add_user
+      no_log: true
+      ansible.builtin.user:
+        name: "{{ remote_ansible_username }}"
+        comment: "Created at {{ ansible_date_time.date }}"
+        uid: "{{ remote_ansible_uid }}"
+        password: "{{ remote_ansible_password | default(omit) }}"
+        group: "{{ remote_ansible_group | default(omit) }}"
+        groups: "{{ remote_ansible_groups | default(omit) }}"
+        home: "{{ remote_ansible_home | default(omit) }}"
+        shell: "{{ remote_ansible_shell | default('/bin/bash') }}"
+        expires: -1
+        state: "present"
+
+    - name: Add public key to authorized_key file
+      tags: setup-ansible-environment_add_sshkey
+      ansible.posix.authorized_key:
+        user: "{{ remote_ansible_username }}"
+        state: present
+        key: "{{ lookup('file', '~/.ssh/ansible.pub') }}"
+
+    - name: "Deploy supcis_sudoers configuration"
+      tags: setup-ansible-environment_deploy_sudoers
+      ansible.builtin.copy:
+        src: "templates/ansible_sudoers.j2"
+        dest: "/etc/sudoers.d/ansible_sudoers"
+        owner: root
+        group: root
+        mode: 0640
+        backup: true
+        validate: visudo -cf %s
+
+    - name: "Fix ansible_remote_tmp ownership"
+      tags: setup-ansible-environment_fix_ownership
+      when: ansible_remote_tmp is defined
+      ansible.builtin.file:
+        dest: "{{ ansible_remote_tmp }}"
+        owner: "{{ remote_ansible_username }}"
+        group: "{{ remote_ansible_username }}"
+        recurse: true
+
+...

@@ -1,0 +1,27 @@
+---
+name: Check ansible syntax
+
+"on":
+  push:
+    paths:
+      - .github/workflows/check-ansible-syntax.yml
+      - '**.yml'
+      - '**.yaml'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - .github/workflows/check-ansible-syntax.yml
+      - '**.yml'
+      - '**.yaml'
+
+jobs:
+  check-ansible-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Lint Ansible Playbook
+        uses: ansible/ansible-lint-action@v6.3.0
+        with:
+          targets: "./"
+          args: "-q"
